@@ -143,3 +143,54 @@ func (r *nodeBased[T]) SingleConsumerPollVec(ret []T) (end uint64) {
 
 	return uint64(cnt)
 }
+
+// Alternative optimized version that tries to batch claim multiple positions
+// This is more complex but could be even faster under high contention
+func (r *nodeBased[T]) PollNBatched(n uint64) (values []T, count uint64) {
+	if n == 0 {
+		return nil, 0
+	}
+
+	values = make([]T, 0, n)
+	
+	for count < n {
+		oldHead := atomic.LoadUint64(&r.head)
+		
+		// Check how many consecutive values are available
+		available := uint64(0)
+		for i := uint64(0); i < n-count && available < 8; i++ { // Limit batch size to avoid long loops
+			nodeIdx := (oldHead + i) & r.mask
+			node := r.element[nodeIdx]
+			step := atomic.LoadUint64(&node.step)
+			
+			if step != oldHead+i+1 {
+				break // This value is not ready
+			}
+			available++
+		}
+		
+		if available == 0 {
+			break // No values available
+		}
+		
+		// Try to claim this batch
+		if !atomic.CompareAndSwapUint64(&r.head, oldHead, oldHead+available) {
+			// Another consumer interfered, try again with single item
+			continue
+		}
+		
+		// Successfully claimed batch, extract values
+		for i := uint64(0); i < available; i++ {
+			nodeIdx := (oldHead + i) & r.mask
+			node := r.element[nodeIdx]
+			step := atomic.LoadUint64(&node.step)
+			
+			values = append(values, node.value)
+			atomic.StoreUint64(&node.step, step+r.mask)
+		}
+		
+		count += available
+	}
+
+	return values, count
+}
