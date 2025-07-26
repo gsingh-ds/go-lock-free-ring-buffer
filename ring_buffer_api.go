@@ -4,6 +4,7 @@ package lfring
 type RingBuffer[T any] interface {
 	Offer(T) (success bool)
 	Poll() (value T, success bool)
+	PollNBatched(n uint64) (values []T, count uint64)
 	SingleProducerOffer(valueSupplier func() (v T, finish bool))
 	SingleConsumerPoll(valueConsumer func(T))
 	SingleConsumerPollVec(ret []T) (validCnt uint64)
