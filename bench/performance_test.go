@@ -2,7 +2,7 @@ package bench
 
 import (
 	"fmt"
-	"github.com/LENSHOOD/go-lock-free-ring-buffer"
+	"github.com/gsingh-ds/go-lock-free-ring-buffer"
 	"math/rand"
 	"os"
 	"runtime"
