@@ -160,3 +160,10 @@ func (r *classical[T]) isFull(tail uint64, head uint64) bool {
 func (r *classical[T]) isEmpty(tail uint64, head uint64) bool {
 	return (tail < head) || (tail-head == 0)
 }
+
+// YET TO IMPLEMENT
+// Alternative optimized version that tries to batch claim multiple positions
+// This is more complex but could be even faster under high contention
+func (r *classical[T]) PollNBatched(n uint64) (values []T, count uint64) {
+	return nil, 0
+}
